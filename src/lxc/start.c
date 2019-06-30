@@ -1773,6 +1773,14 @@ static int lxc_spawn(struct lxc_handler *handler)
 	}
 	TRACE("Cloned child process %d", handler->pid);
 
+	ret = snprintf(pidstr, 20, "%d", handler->pid);
+	if (ret < 0 || ret >= 20)
+		goto out_delete_net;
+
+	ret = setenv("LXC_PID", pidstr, 1);
+	if (ret < 0)
+		SYSERROR("Failed to set environment variable: LXC_PID=%s", pidstr);
+
 	if (handler->pidfd < 0) {
 		handler->proc_pidfd = proc_pidfd_open(handler->pid);
 		if (handler->proc_pidfd < 0 && (errno != ENOSYS))
@@ -1914,14 +1922,6 @@ static int lxc_spawn(struct lxc_handler *handler)
 			DEBUG("Preserved cgroup namespace via fd %d", ret);
 		}
 	}
-
-	ret = snprintf(pidstr, 20, "%d", handler->pid);
-	if (ret < 0 || ret >= 20)
-		goto out_delete_net;
-
-	ret = setenv("LXC_PID", pidstr, 1);
-	if (ret < 0)
-		SYSERROR("Failed to set environment variable: LXC_PID=%s", pidstr);
 
 	/* Run any host-side start hooks */
 	ret = run_lxc_hooks(name, "start-host", conf, NULL);
